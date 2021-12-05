@@ -351,12 +351,13 @@ class Scene(object):
         return s
 
 
-def load_mesh(filename, mesh_root_dir, scale=None):
+def load_mesh(filename, mesh_root_dir, scale=None, ret_scale=False):
     """Load a mesh from a JSON or HDF5 file from the grasp dataset. The mesh will be scaled accordingly.
 
     Args:
         filename (str): JSON or HDF5 file name.
         scale (float, optional): If specified, use this as scale instead of value from the file. Defaults to None.
+        ret_scale (bool): If True, returns the scale of the loaded object.
 
     Returns:
         trimesh.Trimesh: Mesh of the loaded object.
@@ -367,7 +368,11 @@ def load_mesh(filename, mesh_root_dir, scale=None):
         mesh_scale = data["object_scale"] if scale is None else scale
     elif filename.endswith(".h5"):
         data = h5py.File(filename, "r")
-        mesh_fname = data["object/file"][()].decode('utf-8')
+        f = data['object/file'][()]
+        if type(f) == str:
+            mesh_fname = data["object/file"][()]
+        else:
+            mesh_fname = data["object/file"][()].decode('utf-8')
         mesh_scale = data["object/scale"][()] if scale is None else scale
     else:
         raise RuntimeError("Unknown file ending:", filename)
@@ -375,7 +380,10 @@ def load_mesh(filename, mesh_root_dir, scale=None):
     obj_mesh = trimesh.load(os.path.join(mesh_root_dir, mesh_fname))
     obj_mesh = obj_mesh.apply_scale(mesh_scale)
 
-    return obj_mesh
+    if ret_scale:
+        return obj_mesh, mesh_scale
+    else:
+        return obj_mesh
 
 
 def load_grasps(filename):
@@ -413,7 +421,8 @@ def create_gripper_marker(color=[0, 0, 255], tube_radius=0.001, sections=6):
         trimesh.Trimesh: A mesh that represents a simple parallel yaw gripper.
     """
     cfl = trimesh.creation.cylinder(
-        radius=0.002,
+        # radius=0.002,
+        radius=tube_radius,
         sections=sections,
         segment=[
             [4.10000000e-02, -7.27595772e-12, 6.59999996e-02],
@@ -421,7 +430,7 @@ def create_gripper_marker(color=[0, 0, 255], tube_radius=0.001, sections=6):
         ],
     )
     cfr = trimesh.creation.cylinder(
-        radius=0.002,
+        radius=tube_radius,
         sections=sections,
         segment=[
             [-4.100000e-02, -7.27595772e-12, 6.59999996e-02],
@@ -429,10 +438,10 @@ def create_gripper_marker(color=[0, 0, 255], tube_radius=0.001, sections=6):
         ],
     )
     cb1 = trimesh.creation.cylinder(
-        radius=0.002, sections=sections, segment=[[0, 0, 0], [0, 0, 6.59999996e-02]]
+        radius=tube_radius, sections=sections, segment=[[0, 0, 0], [0, 0, 6.59999996e-02]]
     )
     cb2 = trimesh.creation.cylinder(
-        radius=0.002,
+        radius=tube_radius,
         sections=sections,
         segment=[[-4.100000e-02, 0, 6.59999996e-02], [4.100000e-02, 0, 6.59999996e-02]],
     )
