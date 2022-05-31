@@ -272,7 +272,7 @@ class Scene(object):
 
         Args:
             obj_id (str): Name of the object.
-            frame (str, optional): Object reference frame to use. Either 'com' (center of mass) or 'mesh' (origin of mesh file). Defaults to 'com'.
+            frame (str, optional): Object reference frame to use. Either 'com' (center of mass), 'centroid', or 'mesh' (origin of mesh file). Defaults to 'com'.
 
         Raises:
             ValueError: If frame is not 'com' or 'mesh'.
@@ -284,6 +284,11 @@ class Scene(object):
             return np.dot(
                 self._poses[obj_id],
                 tra.translation_matrix(self._objects[obj_id].center_mass),
+            )
+        elif frame == 'centroid':
+            return np.dot(
+                self._poses[obj_id],
+                tra.translation_matrix(self._objects[obj_id].centroid),
             )
         elif frame == "mesh":
             return self._poses[obj_id]
@@ -351,7 +356,7 @@ class Scene(object):
         return s
 
 
-def load_mesh(filename, mesh_root_dir, scale=None, ret_scale=False):
+def load_mesh(filename, mesh_root_dir, scale=None, ret_scale=False, load_for_bullet=False):
     """Load a mesh from a JSON or HDF5 file from the grasp dataset. The mesh will be scaled accordingly.
 
     Args:
@@ -374,6 +379,10 @@ def load_mesh(filename, mesh_root_dir, scale=None, ret_scale=False):
         else:
             mesh_fname = data["object/file"][()].decode('utf-8')
         mesh_scale = data["object/scale"][()] if scale is None else scale
+        mesh_scale = float(mesh_scale)
+        if load_for_bullet:
+            dirname = mesh_fname.replace('meshes/', '').replace('.obj', '').replace('/', '_')
+            mesh_fname = f"meshes_bullet/{dirname}_{mesh_scale}/model_normalized.obj"
     else:
         raise RuntimeError("Unknown file ending:", filename)
 
