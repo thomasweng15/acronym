@@ -356,7 +356,7 @@ class Scene(object):
         return s
 
 
-def load_mesh(filename, mesh_root_dir, scale=None, ret_scale=False, load_for_bullet=False):
+def load_mesh(filename, mesh_root_dir, load_for_bullet=False):
     """Load a mesh from a JSON or HDF5 file from the grasp dataset. The mesh will be scaled accordingly.
 
     Args:
@@ -370,7 +370,7 @@ def load_mesh(filename, mesh_root_dir, scale=None, ret_scale=False, load_for_bul
     if filename.endswith(".json"):
         data = json.load(open(filename, "r"))
         mesh_fname = data["object"].decode('utf-8')
-        mesh_scale = data["object_scale"] if scale is None else scale
+        # mesh_scale = data["object_scale"] if scale is None else scale
     elif filename.endswith(".h5"):
         data = h5py.File(filename, "r")
         f = data['object/file'][()]
@@ -378,21 +378,15 @@ def load_mesh(filename, mesh_root_dir, scale=None, ret_scale=False, load_for_bul
             mesh_fname = data["object/file"][()]
         else:
             mesh_fname = data["object/file"][()].decode('utf-8')
-        mesh_scale = data["object/scale"][()] if scale is None else scale
-        mesh_scale = float(mesh_scale)
         if load_for_bullet:
+            mesh_scale = filename.replace('.h5', '').split('_')[-1]
             dirname = mesh_fname.replace('meshes/', '').replace('.obj', '').replace('/', '_')
             mesh_fname = f"meshes_bullet/{dirname}_{mesh_scale}/model_normalized.obj"
     else:
         raise RuntimeError("Unknown file ending:", filename)
 
     obj_mesh = trimesh.load(os.path.join(mesh_root_dir, mesh_fname))
-    obj_mesh = obj_mesh.apply_scale(mesh_scale)
-
-    if ret_scale:
-        return obj_mesh, mesh_scale
-    else:
-        return obj_mesh
+    return obj_mesh
 
 
 def load_grasps(filename):
